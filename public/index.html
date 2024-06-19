@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Database Tables</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 8px;
+        text-align: left;
+        border: 1px solid #ddd;
+      }
+
+      th {
+        background-color: #f2f2f2;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
+      select,
+      button {
+        margin-bottom: 20px;
+        padding: 8px;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Database Tables</h1>
+    <select id="tableSelect">
+      <option value="Individuals">Individuals</option>
+      <option value="Borrowers">Borrowers</option>
+      <option value="Loans">Loans</option>
+      <option value="OrganizationLoans">Organization Loans</option>
+    </select>
+    <button id="addRecordButton">Add Random Record</button>
+    <button id="clearTablesButton">Clear All Records Except First Three</button>
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <!-- Динамическое заполнение заголовков -->
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const tableSelect = document.getElementById("tableSelect");
+        const addRecordButton = document.getElementById("addRecordButton");
+        const clearTablesButton = document.getElementById("clearTablesButton");
+        const dataTable = document.getElementById("dataTable");
+
+        tableSelect.addEventListener("change", fetchData);
+        addRecordButton.addEventListener("click", addRandomRecord);
+        clearTablesButton.addEventListener("click", clearTables);
+
+        function fetchData() {
+          const selectedTable = tableSelect.value;
+          fetch(`/api/${selectedTable}`)
+            .then((response) => response.json())
+            .then((data) => {
+              renderTable(selectedTable, data);
+            })
+            .catch((error) => console.error("Ошибка:", error));
+        }
+
+        function addRandomRecord() {
+          const selectedTable = tableSelect.value;
+          fetch(`/api/${selectedTable}/random`, {
+            method: "POST",
+          })
+            .then((response) => {
+              if (response.ok) {
+                fetchData();
+              } else {
+                console.error("Ошибка добавления записи");
+              }
+            })
+            .catch((error) => console.error("Ошибка:", error));
+        }
+
+        function clearTables() {
+          fetch(`/api/deleteExceptFirstThree`, {
+            method: "DELETE",
+          })
+            .then((response) => {
+              if (response.ok) {
+                fetchData();
+              } else {
+                console.error("Ошибка очистки таблиц");
+              }
+            })
+            .catch((error) => console.error("Ошибка:", error));
+        }
+
+        function renderTable(tableName, data) {
+          const thead = dataTable.querySelector("thead");
+          const tbody = dataTable.querySelector("tbody");
+
+          thead.innerHTML = ""; // Очистка заголовков
+          tbody.innerHTML = ""; // Очистка тела таблицы
+
+          if (data.length === 0) {
+            thead.innerHTML = "<tr><th>No Data</th></tr>";
+            return;
+          }
+
+          // Создание заголовков таблицы на основе ключей первого объекта
+          const headers = Object.keys(data[0]);
+          const headerRow = document.createElement("tr");
+          headers.forEach((header) => {
+            const th = document.createElement("th");
+            th.textContent = header;
+            headerRow.appendChild(th);
+          });
+          thead.appendChild(headerRow);
+
+          // Заполнение строк таблицы данными
+          data.forEach((row) => {
+            const tr = document.createElement("tr");
+            headers.forEach((header) => {
+              const td = document.createElement("td");
+              td.textContent = row[header];
+              tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+          });
+        }
+
+        // Загрузка данных для таблицы по умолчанию при загрузке страницы
+        fetchData();
+      });
+    </script>
+  </body>
+</html>
